@@ -63,12 +63,12 @@ const selectData = function (entries) {
       return hour >= 6 && hour <= 23;
     });
 
-    const selectionSize = randomInt(8, 20);
+    const selectionSize = randomInt(12, 20);
 
     if (dayEntries.length < selectionSize) {
       result.push(...dayEntries);
     } else {
-      // Select 8 dates evenly distributed over the 7am-9pm range
+      // Select 12 dates evenly distributed over the 6am-11pm range
       const slots = Array.from({ length: selectionSize }, (_, i) => i);
       const slotSize = Math.floor(dayEntries.length / selectionSize);
       const slotPositions = slots.map(slot => slot * slotSize);
@@ -92,8 +92,7 @@ const getNightscoutAllEntries = async function (baseUrl, token, fromDate, toDate
       'Content-Type': 'application/json'
     }
   });
-  //console.log('Profile entries read:', JSON.stringify(responseProf.data,null, 4).gray);
-  
+    
   const defaultProf = responseProf.data[0].defaultProfile;
   console.log('Default profile', defaultProf.green);
   
@@ -104,7 +103,7 @@ const getNightscoutAllEntries = async function (baseUrl, token, fromDate, toDate
   const tzUTCOffset = dayjs().tz(timeZone).utcOffset();
   console.log('UTC offset of profile time Zone', tzUTCOffset.toString().blue);
   
-  const url = `${baseUrl}/api/v1/entries.json?find[dateString][$gte]=${fromDate}&find[dateString][$lt]=${toDate}&count=131072${getNightscoutToken(token)}`;
+  const url = `${baseUrl}/api/v1/entries.json?find[date][$gte]=${dayjs(fromDate).valueOf()}&find[date][$lt]=${dayjs(toDate).valueOf()}&count=131072${getNightscoutToken(token)}`;
   console.log('glucose entries url', url.gray);
 
   const response = await axios.get(url, {
@@ -117,13 +116,13 @@ const getNightscoutAllEntries = async function (baseUrl, token, fromDate, toDate
   console.log('UTC Offset:', utcOffset.toString().blue);
   
   const dataGlucose = response.data.filter((value, index, Arr) => index % 3 == 0).map(d => {
-	const dateStringLocal = dayjs.utc(d.dateString).utcOffset(utcOffset);
+    const dateString = dayjs.utc(d.date);
+    const dateStringLocal = dateString.utcOffset(utcOffset);
     return {
       id: parseInt(`1${dateStringLocal.format('YYYYMMDDHHmmss')}`),
-      sysTime: d.sysTime,
+      sysTime: dateString.format(),
       dateString: dateStringLocal.format(),
       sgv: d.sgv,
-      delta: d.delta,
       direction: d.direction
     };
   });
